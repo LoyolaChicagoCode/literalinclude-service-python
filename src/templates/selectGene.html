@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Loyola University HivDB</title>
+
+    <!-- Bootstrap core CSS -->
+    
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <!-- Custom styles for this template -->
+    <link href="/static/bootstrap/css/starter-template.css" rel="stylesheet">
+    <style>
+    #sequences {
+    width: 100%;
+    word-wrap: break-word;
+    }
+  
+    </style>
+
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="../../assets/js/ie-emulation-modes-warning.js"></script>
+
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand">
+        <img style="max-width:40px; margin-top: -7px;" src="/static/HIV-virus.jpg"></a>
+          <a class="navbar-brand" href="#">HivDB</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="/genbank/">Home</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/contact">Contact</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+
+    <div class="container">
+
+      <!-- <form name ="type" action="form" method="post">
+	Query By:
+	<p><select name="type">
+  <option value="date">Year</option>
+  <option value="location">Location</option>
+  <option value="accession">Accession</option>
+</select>
+
+  
+Value: <input type="text" name="value"><br>
+<input type="submit" value="Query">
+</form> 
+
+
+</p> -->
+
+<form action="/genbank/{{coll}}/{{g}}/form" method="post">
+  <h1>Query Parameters</h1>
+
+  <div class="form-group">
+    <label for="date">Year</label>
+    <input type="text" class="form-control" name="date" placeholder="Enter Year">
+  </div>
+  <div class="form-group">
+    <label for="location">Location</label>
+    <input type="text" class="form-control" name="location" placeholder="Location">
+  </div>
+  <div class="form-group">
+    <label for="accession">Accession</label>
+    <input type="text" class="form-control" name="accession" placeholder="Accession Number">
+  </div>
+  <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span> Query</button>
+  <a href="download"><button type="button" class="btn btn-default"><span class="glyphicon glyphicon-download"></span> Download Result</button></a>
+</form>
+<br>
+<br>
+<div id="sequences">
+{% for gene in fastas: %}
+	<h5>{{gene}}</h5>
+{% endfor %}
+</div>
+
+    </div><!-- /.container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  </body>
+</html>
