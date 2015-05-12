@@ -41,20 +41,20 @@ def github_request_uri(user, repo, path):
 @app.route("/base64/<service>/<type>/<user>/<repo>/<path:path>")
 def get_b64(service, type, user, repo, path):
   if service != 'github' or type != 'code':
-  	return Response("We only serve 'github' and 'code' requests")
+    return Response("We only serve 'github' and 'code' requests")
 
   r = github_request(user, repo, path)
   if r.status_code == 200:
     b64data = r.json().get('content')
     return Response(b64data, mimetype='text/plain')
   else:
-  	return Response("Cannot access " + github_request_uri(user, repo, path))
+    return Response("Cannot access " + github_request_uri(user, repo, path))
 
 # This is to get the actual file
 @app.route("/file/<service>/<type>/<user>/<repo>/<path:path>")
 def get_file(service, type, user, repo, path):
   if service != 'github' or type != 'code':
-  	return Response("We only serve 'github' and 'code' requests")
+    return Response("We only serve 'github' and 'code' requests")
 
   r = github_request(user, repo, path)
   if r.status_code == 200:
@@ -62,7 +62,7 @@ def get_file(service, type, user, repo, path):
     entire_file = base64.b64decode(b64data).decode('utf-8')
     return Response(entire_file, mimetype='text/plain')
   else:
-  	return Response("Cannot access " + github_request_uri(user, repo, path))
+    return Response("Cannot access " + github_request_uri(user, repo, path))
 
 # This code balances the requested format with best available
 # Used in the HIV web service but not needed here yet.
