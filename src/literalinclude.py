@@ -71,6 +71,13 @@ def get_file(service, type, user, repo, path):
 
 # Beginning of actual include service!
 
+def dedented_line_generator(lines, dedent_chars=0):
+  for line in lines:
+    try:
+      yield line[dedent_chars:]
+    except:
+      yield ""
+
 @app.route("/include/<service>/<type>/<user>/<repo>/<path:path>")
 def do_include(service, type, user, repo, path):
   r = github_request(user, repo, path)
@@ -81,6 +88,11 @@ def do_include(service, type, user, repo, path):
   file_text = get_file_text(file_content)
   default_line_selection = "%d-%d" % (1, len(file_text))
   lines = request.args.get('lines', default_line_selection)
+  try:
+    dedent = int(request.args.get('dedent', 0))
+  except:
+    dedent = 0
+
   tokens = lines.split("-")
   if len(tokens) != 2:
     return Response("Illegal line selection: %s (must be m-n)" % lines, mimetype='text/plain')
@@ -88,7 +100,8 @@ def do_include(service, type, user, repo, path):
     start_line = int(tokens[0])-1
     end_line = int(tokens[1])
     # TODO: need to ensure both of these are in range...
-    return Response(get_joined_lines(file_text[start_line:end_line]), mimetype='text/plain')
+    out_lines = dedented_line_generator(file_text[start_line:end_line], dedent)
+    return Response(get_joined_lines(out_lines), mimetype='text/plain')
 
 #Running app on localhost
 if __name__ == "__main__":
