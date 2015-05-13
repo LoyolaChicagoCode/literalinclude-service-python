@@ -38,42 +38,57 @@ def github_request_uri(user, repo, path):
   return r"https://api.github.com/repos/%(user)s/%(repo)s/contents/%(path)s" % vars()
 
 # This is so we can access the base64 representation directly (only for development)
+
+def get_file_content(request):
+  return request.json().get('content', '')
+
+def get_file_text(b64data, encoding='utf-8'):
+  data = base64.b64decode(b64data).decode(encoding)
+  lines = data.split('\n')   # need to check this assumption
+  return lines
+
+def get_joined_lines(lines):
+  return "\n".join(lines)
+
 @app.route("/base64/<service>/<type>/<user>/<repo>/<path:path>")
 def get_b64(service, type, user, repo, path):
-  if service != 'github' or type != 'code':
-    return Response("We only serve 'github' and 'code' requests")
-
   r = github_request(user, repo, path)
-  if r.status_code == 200:
-    b64data = r.json().get('content')
-    return Response(b64data, mimetype='text/plain')
-  else:
+  if r.status_code != 200:
     return Response("Cannot access " + github_request_uri(user, repo, path))
+  b64data = get_file_content(r)
+  return Response(b64data, mimetype='text/plain')
 
 # This is to get the actual file
 @app.route("/file/<service>/<type>/<user>/<repo>/<path:path>")
 def get_file(service, type, user, repo, path):
-  if service != 'github' or type != 'code':
-    return Response("We only serve 'github' and 'code' requests")
-
   r = github_request(user, repo, path)
-  if r.status_code == 200:
-    b64data = r.json().get('content')
-    entire_file = base64.b64decode(b64data).decode('utf-8')
-    return Response(entire_file, mimetype='text/plain')
-  else:
+  if r.status_code != 200:
     return Response("Cannot access " + github_request_uri(user, repo, path))
 
-# This code balances the requested format with best available
-# Used in the HIV web service but not needed here yet.
+  file_content = get_file_content(r)
+  file_text = get_file_text(file_content)
+  return Response(get_joined_lines(file_text), mimetype='text/plain')
 
-def request_wants_json():
-    best = request.accept_mimetypes \
-        .best_match(['application/json', 'text/html'])
-    return best == 'application/json' and \
-        request.accept_mimetypes[best] > \
-        request.accept_mimetypes['text/html']
+# Beginning of actual include service!
 
+@app.route("/include/<service>/<type>/<user>/<repo>/<path:path>")
+def do_include(service, type, user, repo, path):
+  r = github_request(user, repo, path)
+  if r.status_code != 200:
+    return Response("Cannot access " + github_request_uri(user, repo, path))
+
+  file_content = get_file_content(r)
+  file_text = get_file_text(file_content)
+  default_line_selection = "%d-%d" % (1, len(file_text))
+  lines = request.args.get('lines', default_line_selection)
+  tokens = lines.split("-")
+  if len(tokens) != 2:
+    return Response("Illegal line selection: %s (must be m-n)" % lines, mimetype='text/plain')
+  else:
+    start_line = int(tokens[0])-1
+    end_line = int(tokens[1])
+    # TODO: need to ensure both of these are in range...
+    return Response(get_joined_lines(file_text[start_line:end_line]), mimetype='text/plain')
 
 #Running app on localhost
 if __name__ == "__main__":
