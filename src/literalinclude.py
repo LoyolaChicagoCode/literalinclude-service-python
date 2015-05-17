@@ -29,7 +29,11 @@ def hi_person(person="Mr. Nobody"):
 def greet_person(person="Mr. Nobody"):
   message = request.args.get('message', "How are you?")
   return render_template("greeting.html", person=person, message=message)
-
+  
+@app.route("/hellojson/<person>/")
+def hi_person2(person="Nobody"):
+  message="Hello, %s" % person
+  return jsonify(message=message, encoded_message=base64.b64encode(message.encode('utf-8')).decode('utf-8'))
   
 def github_request(user, repo, path):
   return requests.get("https://api.github.com/repos/%(user)s/%(repo)s/contents/%(path)s" % vars())
@@ -101,7 +105,10 @@ def do_include(service, type, user, repo, path):
     end_line = int(tokens[1])
     # TODO: need to ensure both of these are in range...
     out_lines = dedented_line_generator(file_text[start_line:end_line], dedent)
-    return Response(get_joined_lines(out_lines), mimetype='text/plain')
+    joined_lines = get_joined_lines(out_lines)
+    b64_lines = base64.b64encode(joined_lines.encode('utf-8'))
+    return jsonify(service=service, user=user, type=type, repo=repo, path=path,
+      start_line=start_line, end_line=end_line, text=b64_lines.decode('utf-8'))
 
 #Running app on localhost
 if __name__ == "__main__":
