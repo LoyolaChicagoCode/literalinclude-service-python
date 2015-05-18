@@ -1,8 +1,4 @@
-#from pymongo import *
-
-# included in Python
 import json
-import socket
 import re
 import base64
 
@@ -13,44 +9,27 @@ from flask import *
 import requests
 
 app = Flask(__name__)
-app.debug = True
+app.debug = False
 
-# Show available databases
 
-# Some quick/dirty tests of Flask and templating (Hello, World)
-# I need these examples for later work to add a presentation layer.
-# Right now, most of our queries return text/plain for raw inclusion elsewhere.
+# request_wants_json() is adapted from http://flask.pocoo.org/snippets/45/
 
 def request_wants_json():
-    best = request.accept_mimetypes \
-        .best_match(['application/json', 'text/html'])
-    return best == 'application/json' and \
-        request.accept_mimetypes[best] > \
-        request.accept_mimetypes['text/html']
+  best = request.accept_mimetypes.best_match(['application/json', 'text/html'])
+  return best == 'application/json' \
+    and request.accept_mimetypes[best] > request.accept_mimetypes['text/html']
 
-@app.route("/hello/<person>/")
-def hi_person(person="Mr. Nobody"):
+def error_response(message):
   if request_wants_json():
-    return jsonify(hello="Hello, %s" % person)
+    return jsonify(error=message)
   else:
-    return render_template("hello.html", person=person)
-
-@app.route("/greeting/<person>/")
-def greet_person(person="Mr. Nobody"):
-  message = request.args.get('message', "How are you?")
-  if request_wants_json():
-    return jsonify(hello="Hello, %s, %s" % (person, message))
-  else:
-    return render_template("greeting.html", person=person, message=message)
-  
+    return Response(message, mimetype='text/plain')
 
 def github_request(user, repo, path):
   return requests.get("https://api.github.com/repos/%(user)s/%(repo)s/contents/%(path)s" % vars())
   
 def github_request_uri(user, repo, path):
   return r"https://api.github.com/repos/%(user)s/%(repo)s/contents/%(path)s" % vars()
-
-# This is so we can access the base64 representation directly (only for development)
 
 def get_file_content(request):
   return request.json().get('content', '')
@@ -63,27 +42,6 @@ def get_file_text(b64data, encoding='utf-8'):
 def get_joined_lines(lines):
   return "\n".join(lines)
 
-@app.route("/base64/<service>/<type>/<user>/<repo>/<path:path>")
-def get_b64(service, type, user, repo, path):
-  r = github_request(user, repo, path)
-  if r.status_code != 200:
-    return Response("Cannot access " + github_request_uri(user, repo, path))
-  b64data = get_file_content(r)
-  return Response(b64data, mimetype='text/plain')
-
-# This is to get the actual file
-@app.route("/file/<service>/<type>/<user>/<repo>/<path:path>")
-def get_file(service, type, user, repo, path):
-  r = github_request(user, repo, path)
-  if r.status_code != 200:
-    return Response("Cannot access " + github_request_uri(user, repo, path))
-
-  file_content = get_file_content(r)
-  file_text = get_file_text(file_content)
-  return Response(get_joined_lines(file_text), mimetype='text/plain')
-
-# Beginning of actual include service!
-
 def dedented_line_generator(lines, dedent_chars=0):
   for line in lines:
     try:
@@ -91,29 +49,38 @@ def dedented_line_generator(lines, dedent_chars=0):
     except:
       yield ""
 
+
 @app.route("/include/<service>/<type>/<user>/<repo>/<path:path>")
 def do_include(service, type, user, repo, path):
   r = github_request(user, repo, path)
   if r.status_code != 200:
-    return Response("Cannot access " + github_request_uri(user, repo, path))
-
+    return error_response("Cannot access " + github_request_uri(user, repo, path))
   file_content = get_file_content(r)
   file_text = get_file_text(file_content)
-  default_line_selection = "%d-%d" % (1, len(file_text))
+  file_rloc = len(file_text)
+  default_line_selection = "%d-%d" % (1, file_rloc)
   lines = request.args.get('lines', default_line_selection)
   try:
     dedent = int(request.args.get('dedent', 0))
+    if dedent < 0:
+      return error_response("dedent must be a non-negative integer; %s found" % dedent)
   except:
-    dedent = 0
+    return error_response("dedent must be a non-negative integer; %s found" % request.args.get('dedent'))
 
   tokens = lines.split("-")
   if len(tokens) != 2:
-    return Response("Illegal line selection: %s (must be m-n)" % lines, mimetype='text/plain')
+    return error_response("Illegal line selection syntax (requires m-n; found %s; m and n <= %d)" % (lines, file_rloc))
   else:
-    start_line = int(tokens[0])-1
-    end_line = int(tokens[1])
-    # TODO: need to ensure both of these are in range...
-    out_lines = dedented_line_generator(file_text[start_line:end_line], dedent)
+    try:
+      start_line = int(tokens[0])
+      end_line = int(tokens[1])
+    except:
+      return error_response("line selection requires positive integers")
+    if start_line not in range(1, file_rloc+1):
+      return error_response("Illegal start line: %d" % start_line)
+    if end_line not in range(1, file_rloc+1):
+      return error_response("Illegal end line: %d" % end_line)
+    out_lines = dedented_line_generator(file_text[start_line-1:end_line], dedent)
     joined_lines = get_joined_lines(out_lines)
     b64_lines = base64.b64encode(joined_lines.encode('utf-8'))
     if request_wants_json():
