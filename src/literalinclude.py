@@ -4,6 +4,7 @@ import base64
 
 # pip install flask
 from flask import *
+from flask.ext.jsonpify import jsonify
 
 # pip install requests
 import requests
@@ -15,9 +16,10 @@ app.debug = False
 # request_wants_json() is adapted from http://flask.pocoo.org/snippets/45/
 
 def request_wants_json():
-  best = request.accept_mimetypes.best_match(['application/json', 'text/html'])
-  return best == 'application/json' \
-    and request.accept_mimetypes[best] > request.accept_mimetypes['text/html']
+  #best = request.accept_mimetypes.best_match(['application/json', 'text/html'])
+  #return best == 'application/json' \
+  #  and request.accept_mimetypes[best] > request.accept_mimetypes['text/html']
+  return True
 
 def error_response(message):
   if request_wants_json():
